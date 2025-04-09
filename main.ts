@@ -29,12 +29,11 @@ export default class LogosReferencePlugin extends Plugin {
 				
 				const notePath = file.name
 				const clipboard = await navigator.clipboard.readText();
-				const { mainText, bibtex } = parseLogosClipboard(clipboard);
+				const { mainText, bibtex, page } = parseLogosClipboard(clipboard);
 				const citeKey = extractCiteKey(bibtex);
 				const folder = this.settings.bibFolder.trim() || '';
 				const filePath = folder ? `${folder}/${citeKey}.md` : `${citeKey}.md`;
-		
-				const page = extractPagesFromBibtex(bibtex);
+
 				const pageLabel = page
 					? `, ${page.includes('-') || page.includes('–') ? 'pp.' : 'p.'} ${page}`
 					: "";
@@ -46,13 +45,13 @@ export default class LogosReferencePlugin extends Plugin {
 				} else {
 					counters[notePath]++;
 				}
-				const blockId = `${citeKey}-${counters[notePath]}`;
+				const blockId = `${citeKey.replace(' ','-')}-${counters[notePath]}`;
 				await this.saveSettings();
 		
 				const quotedText = [
+					`> [!Logos Ref]`,
 					`> ${mainText.split('\n').join('\n> ')}`,
-					`> [[${filePath}|${citeKey}${pageLabel}]]`,
-					`%% ^${blockId} %%`
+					`> [[${filePath}|${citeKey}${pageLabel}]] ^${blockId}`
 				].join('\n');
 		
 				editor.replaceSelection(`${quotedText}\n`);
@@ -135,7 +134,7 @@ function extractCiteKey(bibtex: string): string {
 	if (!match) throw new Error("Could not extract cite key");
 
 	let citeKey = match[1];
-	citeKey = citeKey.replace(/[<>:"/\\|?*]/g, " ");
+	citeKey = citeKey.replace(/[_\W]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 	return citeKey;
 }
 
