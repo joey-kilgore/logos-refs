@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
 
 interface LogosPluginSettings {
 	bibFolder: string;
@@ -97,8 +97,88 @@ export default class LogosReferencePlugin extends Plugin {
 				}
 			}
 		});
-  
+
+		this.addCommand({
+			id: 'list-bibtex-references',
+			name: 'List All BibTeX References',
+			callback: async () => {
+				const editor = this.app.workspace.activeEditor?.editor;
+				if (!editor) {
+					new Notice("No active editor");
+					return;
+				}
+		
+				const filePath = this.app.workspace.getActiveFile()?.path;
+				if (!filePath) {
+					new Notice("No active file");
+					return;
+				}
+		
+				// Step 1: Get all the links in the current document (reference to other notes)
+				const links = await this.getAllLinksInDocument(filePath);
+				if (links.length === 0) {
+					new Notice("No references found in the document.");
+					return;
+				}
+				new Notice(links);
+				// Step 2: Get BibTeX from all the linked notes
+				const bibtexReferences = await this.getBibtexFromLinks(links);
+				if (bibtexReferences.length === 0) {
+					new Notice("No BibTeX references found in linked notes.");
+					return;
+				}
+		
+				// Step 3: Append BibTeX references at the end of the current document
+				const bibtexList = bibtexReferences.join("\n\n");
+				const content = await this.app.vault.read(this.app.workspace.getActiveFile() as TFile);
+				const updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
+		
+				// Step 4: Modify the current document with the new content
+				await this.app.vault.modify(this.app.workspace.getActiveFile() as TFile, updatedContent);
+				new Notice("BibTeX references added to the document.");
+			}
+		});
+		
 	  	this.addSettingTab(new LogosPluginSettingTab(this.app, this));
+	}
+
+	// Helper function to get all links in a document
+	async getAllLinksInDocument(filePath: string): Promise<string[]> {
+		const file = this.app.vault.getAbstractFileByPath(filePath);
+		if (file instanceof TFile) {
+			const content = await this.app.vault.read(file);
+			const linkRegex = /\[\[([^\]]+)\]\]/g;
+			const linksSet = new Set<string>();
+			let match;
+			while ((match = linkRegex.exec(content))) {
+				const link = match[1];
+				const cleanedLink = link.split('|')[0];
+            	linksSet.add(cleanedLink);
+			}
+			return Array.from(linksSet);
+		}
+		return [];
+	}
+	
+	// Helper function to get BibTeX from the links
+	async getBibtexFromLinks(links: string[]): Promise<string[]> {
+		const bibtexReferences: string[] = [];
+		for (const link of links) {
+			const file = this.app.vault.getAbstractFileByPath(link);
+			if (file instanceof TFile) {
+				const content = await this.app.vault.read(file);
+				new Notice(content);
+				// Updated regex to match BibTeX block
+				const bibtexMatch = content.match(/```bibtex[\s\S]*?```/);
+
+				if (bibtexMatch) {
+					// Extract the content between the '```bibtex' and '```' markers
+					const bibtexContent = bibtexMatch[0].replace(/```bibtex|```/g, '').trim();
+					bibtexReferences.push(bibtexContent);
+				}
+			}
+		}
+		return bibtexReferences;
 	}
   
 	async loadSettings() {
