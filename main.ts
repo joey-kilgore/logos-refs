@@ -120,7 +120,6 @@ export default class LogosReferencePlugin extends Plugin {
 					new Notice("No references found in the document.");
 					return;
 				}
-				new Notice(links);
 				// Step 2: Get BibTeX from all the linked notes
 				const bibtexReferences = await this.getBibtexFromLinks(links);
 				if (bibtexReferences.length === 0) {
@@ -167,7 +166,6 @@ export default class LogosReferencePlugin extends Plugin {
 			const file = this.app.vault.getAbstractFileByPath(link);
 			if (file instanceof TFile) {
 				const content = await this.app.vault.read(file);
-				new Notice(content);
 				// Updated regex to match BibTeX block
 				const bibtexMatch = content.match(/```bibtex[\s\S]*?```/);
 
