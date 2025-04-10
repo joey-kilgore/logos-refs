@@ -1,11 +1,11 @@
 {
 	"id": "logos-refs",
 	"name": "logos-refs",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "0.15.0",
 	"description": "Easily link between Logos bible software and Obsidian",
-	"author": "Obsidian",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"author": "Joey Kilgore",
+	"authorUrl": "https://github.com/joey-kilgore",
+	"fundingUrl": "https://github.com/sponsors/joey-kilgore",
 	"isDesktopOnly": false
 }
