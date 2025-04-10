@@ -75,7 +75,13 @@ export default class LogosReferencePlugin extends Plugin {
 					await this.app.vault.create(filePath, content);
 					new Notice(`Created ${filePath}`);
 				} else {
-					const refNote = await this.app.vault.read(abstractFile as TFile);
+					let refNote = '';
+					if (abstractFile instanceof TFile) {
+						refNote = await this.app.vault.read(abstractFile);
+					} else {
+						new Notice(`Could not read ${filePath}: not a valid file`);
+						return;
+					}
 					const citationLine = `- ${linkBack}`;
 					let updatedContent: string;
 		
@@ -92,8 +98,10 @@ export default class LogosReferencePlugin extends Plugin {
 					} else {
 						updatedContent = `${refNote.trim()}\n\n## Citations\n${citationLine}`;
 					}
-		
-					await this.app.vault.modify(abstractFile as TFile, updatedContent);
+
+					if (abstractFile instanceof TFile) {
+						await this.app.vault.modify(abstractFile, updatedContent);
+					}
 				}
 			}
 		});
@@ -129,11 +137,18 @@ export default class LogosReferencePlugin extends Plugin {
 		
 				// Step 3: Append BibTeX references at the end of the current document
 				const bibtexList = bibtexReferences.join("\n\n");
-				const content = await this.app.vault.read(this.app.workspace.getActiveFile() as TFile);
-				const updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
-		
-				// Step 4: Modify the current document with the new content
-				await this.app.vault.modify(this.app.workspace.getActiveFile() as TFile, updatedContent);
+			
+				const activeFile = this.app.workspace.getActiveFile();
+				let content = '';
+
+				if (activeFile instanceof TFile) {
+					content = await this.app.vault.read(activeFile);
+					const updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
+					await this.app.vault.modify(activeFile, updatedContent);
+				} else {
+					new Notice("Could not read active file: not a valid file.");
+					return;
+				}
 				new Notice("BibTeX references added to the document.");
 			}
 		});
