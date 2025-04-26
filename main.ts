@@ -259,7 +259,7 @@ class LogosPluginSettingTab extends PluginSettingTab {
 	  const { containerEl } = this;
   
 	  containerEl.empty();
-	  containerEl.createEl("h2", { text: "Logos-ref" });
+	  containerEl.createEl("h1", { text: "Logos-ref" });
   
 	  new Setting(containerEl)
 		.setName("BibTeX note folder")
