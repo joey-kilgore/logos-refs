@@ -18,7 +18,7 @@ export default class LogosReferencePlugin extends Plugin {
 
 		this.addCommand({
 			id: 'paste-logos-reference',
-			name: 'Paste Logos Reference with BibTeX',
+			name: 'Paste Logos reference with BibTeX',
 			callback: async () => {
 				const editor = this.app.workspace.activeEditor?.editor;
 				const file = this.app.workspace.getActiveFile();
@@ -108,7 +108,7 @@ export default class LogosReferencePlugin extends Plugin {
 
 		this.addCommand({
 			id: 'list-bibtex-references',
-			name: 'List All BibTeX References',
+			name: 'List all BibTeX references',
 			callback: async () => {
 				const editor = this.app.workspace.activeEditor?.editor;
 				if (!editor) {
