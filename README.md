@@ -1,4 +1,4 @@
-# Obsidian Logos-refs plugin
+# Logos-refs plugin
 
 - Simplify referencing and linking material from Logos Bible Software
 - Easily aggregate bibtex references for your note
