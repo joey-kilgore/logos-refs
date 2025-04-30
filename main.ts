@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
+import { App, Editor, MarkdownEditView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
 
 interface LogosPluginSettings {
 	bibFolder: string;
@@ -19,10 +19,9 @@ export default class LogosReferencePlugin extends Plugin {
 		this.addCommand({
 			id: 'paste-logos-reference',
 			name: 'Paste Logos reference with BibTeX',
-			callback: async () => {
-				const editor = this.app.workspace.activeEditor?.editor;
-				const file = this.app.workspace.getActiveFile();
-				if (!editor || !file) {
+			editorCallback: async (editor: Editor, view: MarkdownEditView) => {
+				const file = view.file;
+				if (!file) {
 					new Notice("No active editor");
 					return;
 				}
@@ -113,14 +112,8 @@ export default class LogosReferencePlugin extends Plugin {
 		this.addCommand({
 			id: 'list-bibtex-references',
 			name: 'List all BibTeX references',
-			callback: async () => {
-				const editor = this.app.workspace.activeEditor?.editor;
-				if (!editor) {
-					new Notice("No active editor");
-					return;
-				}
-		
-				const filePath = this.app.workspace.getActiveFile()?.path;
+			editorCallback: async (editor: Editor, view: MarkdownEditView) => {
+				const filePath = view.file.path;
 				if (!filePath) {
 					new Notice("No active file");
 					return;
