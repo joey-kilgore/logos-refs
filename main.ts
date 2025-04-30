@@ -1,4 +1,4 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile } from 'obsidian';
+import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
 
 interface LogosPluginSettings {
 	bibFolder: string;
@@ -58,10 +58,14 @@ export default class LogosReferencePlugin extends Plugin {
 		
 				// Check if reference file exists
 				const abstractFile = this.app.vault.getAbstractFileByPath(filePath);
+				const abstractFileFolder = this.app.vault.getAbstractFileByPath(folder)
 				const linkBack = `[[${file.basename}#^${blockId}]]${page ? ` → p. ${page}` : ''}`;
 				
 				if (!abstractFile) {
-					if (folder && !(await this.app.vault.getAbstractFileByPath(folder))) {
+					if (folder && (!abstractFileFolder || !(abstractFileFolder instanceof TFolder))) {
+						// if a folder was provided and either
+						//   there is no folder, or the folder is not an instance of a folder
+						// then we need to create the folder
 						await this.app.vault.createFolder(folder);
 					}
 					const content = [
