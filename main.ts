@@ -155,20 +155,15 @@ export default class LogosReferencePlugin extends Plugin {
 
 	// Helper function to get all links in a document
 	async getAllLinksInDocument(filePath: string): Promise<string[]> {
-		const file = this.app.vault.getAbstractFileByPath(filePath);
-		if (file instanceof TFile) {
-			const content = await this.app.vault.read(file);
-			const linkRegex = /\[\[([^\]]+)\]\]/g;
-			const linksSet = new Set<string>();
-			let match;
-			while ((match = linkRegex.exec(content))) {
-				const link = match[1];
-				const cleanedLink = link.split('|')[0];
-            	linksSet.add(cleanedLink);
-			}
-			return Array.from(linksSet);
-		}
-		return [];
+		const abstractFile = this.app.vault.getAbstractFileByPath(filePath);
+		if (!(abstractFile instanceof TFile)) return [];
+	
+		const cache = this.app.metadataCache.getFileCache(abstractFile);
+		if (!cache || !cache.links) return [];
+	
+		// Extract just the link target (removing any alias), and remove duplicates
+		const uniqueLinks = Array.from(new Set(cache.links.map(link => link.link)));
+		return uniqueLinks;
 	}
 	
 	// Helper function to get BibTeX from the links
