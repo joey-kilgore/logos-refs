@@ -1,9 +1,9 @@
 {
 	"id": "logos-refs",
 	"name": "logos-refs",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"minAppVersion": "0.15.0",
-	"description": "Easily link between Logos bible software and Obsidian",
+	"description": "Easily take refs from Logos and connect them within your notes",
 	"author": "Joey Kilgore",
 	"authorUrl": "https://github.com/joey-kilgore",
 	"fundingUrl": "https://github.com/sponsors/joey-kilgore",
