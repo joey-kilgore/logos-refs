@@ -1,4 +1,5 @@
 import { App, Editor, MarkdownEditView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
+import { FolderSuggest } from 'autocomplete'
 
 interface LogosPluginSettings {
 	bibFolder: string;
@@ -248,21 +249,27 @@ class LogosPluginSettingTab extends PluginSettingTab {
 	}
   
 	display(): void {
-	  const { containerEl } = this;
-  
-	  containerEl.empty();
-  
-	  new Setting(containerEl)
-		.setName("BibTeX note folder")
-		.setDesc("Folder to save BibTeX reference notes (relative to vault root)")
-		.addText(text =>
-		  text
-			.setPlaceholder("e.g., refs")
-			.setValue(this.plugin.settings.bibFolder)
-			.onChange(async (value) => {
-			  this.plugin.settings.bibFolder = value;
-			  await this.plugin.saveSettings();
-			})
-		);
+		const { containerEl } = this;
+	
+		containerEl.empty();
+
+		new Setting(this.containerEl)
+            .setName("BibTeX note folder")
+            .setDesc("Folder to save BibTeX reference notes")
+            .addSearch((text) => {
+                new FolderSuggest(this.app, text.inputEl);
+                text.setPlaceholder("Example: folder1/folder2")
+                    .setValue(this.plugin.settings.bibFolder)
+                    .onChange(async (new_folder) => {
+                        // Trim folder and Strip ending slash if there
+                        new_folder = new_folder.trim()
+                        new_folder = new_folder.replace(/\/$/, "");
+
+                        this.plugin.settings.bibFolder = new_folder;
+                        await this.plugin.saveSettings();
+                    });
+                // @ts-ignore
+                text.containerEl.addClass("BibTeX_search");
+            });
 	}
 }
