@@ -1,4 +1,6 @@
 # Logos-refs plugin
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/joey-kilgore/logos-refs?style=for-the-badge&sort=semver)
+![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22logos-refs%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)
 
 - Simplify referencing and linking material from Logos Bible Software
 - Easily aggregate bibtex references for your note
@@ -17,3 +19,11 @@ https://github.com/user-attachments/assets/444c5892-8e17-43c4-8c8b-27a319315eec
 
 ## Development
 This plugin is under continuous and rapid development. All bugs and feature requests should be filed under the [Issues](https://github.com/joey-kilgore/logos-refs/issues) in this repo.
+
+---
+
+> For those who want to show their appreciation for project development. 👍
+>
+> - 👉 `Star` the Project
+> - ☕️ **Buy me a coffee** @[Github Sponsor](https://github.com/sponsors/joey-kilgore)
+> - ❤️ Provide Feedback in [`Issues`](https://github.com/joey-kilgore/logos-refs/issues) or join [`Discussion`](https://github.com/joey-kilgore/logos-refs/discussions)
