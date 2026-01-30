@@ -356,7 +356,8 @@ function convertBibtexToMLA(bibtex: string): string {
 			if (year) mlaEntry += year + '.';
 		}
 		
-		return mlaEntry.trim();
+		// Clean up double periods and extra spaces
+		return mlaEntry.trim().replace(/\.\.+/g, '.').replace(/\s+/g, ' ');
 	} catch (error) {
 		// If parsing fails, return the original bibtex
 		return bibtex;
