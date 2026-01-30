@@ -324,36 +324,53 @@ function convertBibtexToMLA(bibtex: string): string {
 			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
 			if (title) mlaEntry += `*${title}*. `;
 			if (edition) mlaEntry += `${edition} ed. `;
-			if (publisher) mlaEntry += publisher;
-			if (address) mlaEntry += ', ' + address;
-			if (publisher || address) mlaEntry += ', ';
-			if (year) mlaEntry += year + '.';
+			// Publisher and location
+			const pubParts = [];
+			if (publisher) pubParts.push(publisher);
+			if (address) pubParts.push(address);
+			if (pubParts.length > 0) mlaEntry += pubParts.join(', ');
+			if (year) {
+				if (pubParts.length > 0) mlaEntry += ', ';
+				mlaEntry += year;
+			}
+			if (pubParts.length > 0 || year) mlaEntry += '.';
 		} else if (entryType === 'article') {
 			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
 			if (title) mlaEntry += `"${title}." `;
-			if (journal) mlaEntry += `*${journal}*`;
-			if (volume) mlaEntry += `, vol. ${volume}`;
-			if (number) mlaEntry += `, no. ${number}`;
-			if (year) mlaEntry += `, ${year}`;
-			if (pages) mlaEntry += `, pp. ${pages}`;
-			mlaEntry += '.';
+			if (journal) {
+				mlaEntry += `*${journal}*`;
+				// Add volume, number, year, pages as a sequence
+				const details = [];
+				if (volume) details.push(`vol. ${volume}`);
+				if (number) details.push(`no. ${number}`);
+				if (year) details.push(year);
+				if (pages) details.push(`pp. ${pages}`);
+				if (details.length > 0) mlaEntry += ', ' + details.join(', ');
+				mlaEntry += '.';
+			}
 		} else if (entryType === 'incollection' || entryType === 'inbook') {
 			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
 			if (title) mlaEntry += `"${title}." `;
-			if (booktitle) mlaEntry += `*${booktitle}*`;
-			if (editor) mlaEntry += `, edited by ${editor}`;
-			if (edition) mlaEntry += `, ${edition} ed.`;
-			if (publisher) mlaEntry += ', ' + publisher;
-			if (address) mlaEntry += ', ' + address;
-			if (year) mlaEntry += ', ' + year;
-			if (pages) mlaEntry += `, pp. ${pages}`;
-			mlaEntry += '.';
+			if (booktitle) {
+				mlaEntry += `*${booktitle}*`;
+				const details = [];
+				if (editor) details.push(`edited by ${editor}`);
+				if (edition) details.push(`${edition} ed.`);
+				if (publisher) details.push(publisher);
+				if (address) details.push(address);
+				if (year) details.push(year);
+				if (pages) details.push(`pp. ${pages}`);
+				if (details.length > 0) mlaEntry += ', ' + details.join(', ');
+				mlaEntry += '.';
+			}
 		} else {
 			// Generic format for other types
 			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
 			if (title) mlaEntry += `*${title}*. `;
-			if (publisher) mlaEntry += publisher + ', ';
-			if (year) mlaEntry += year + '.';
+			const details = [];
+			if (publisher) details.push(publisher);
+			if (year) details.push(year);
+			if (details.length > 0) mlaEntry += details.join(', ') + '.';
 		}
 		
 		// Clean up double periods and extra spaces
