@@ -1,14 +1,18 @@
 import { App, Editor, MarkdownEditView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, TFolder } from 'obsidian';
 import { FolderSuggest } from 'autocomplete'
 
+type BibliographyFormat = 'latex' | 'mla';
+
 interface LogosPluginSettings {
 	bibFolder: string;
 	citationCounters: Record<string, number>;
+	bibliographyFormat: BibliographyFormat;
 }
 
 const DEFAULT_SETTINGS: LogosPluginSettings = {
 	bibFolder: '', // default to vault root
 	citationCounters: {},
+	bibliographyFormat: 'latex',
 };
 
 export default class LogosReferencePlugin extends Plugin {
@@ -133,8 +137,18 @@ export default class LogosReferencePlugin extends Plugin {
 					return;
 				}
 		
-				// Step 3: Update or create bibliography with BibTeX references
-				const bibtexList = bibtexReferences.join("\n\n");
+				// Step 3: Format bibliography entries according to selected format
+				const format = this.settings.bibliographyFormat;
+				const formattedReferences = bibtexReferences.map(bibtex => {
+					if (format === 'latex') {
+						// For LaTeX, wrap in code block
+						return '```bibtex\n' + bibtex + '\n```';
+					} else {
+						// For MLA, convert and display as plain text
+						return formatBibliographyEntry(bibtex, format);
+					}
+				});
+				const bibliographyList = formattedReferences.join("\n\n");
 			
 				const activeFile = this.app.workspace.getActiveFile();
 				let content = '';
@@ -148,12 +162,12 @@ export default class LogosReferencePlugin extends Plugin {
 					
 					if (bibliographyRegex.test(content)) {
 						// Replace existing bibliography, preserving spacing before next section
-						updatedContent = content.replace(bibliographyRegex, `## Bibliography\n${bibtexList}\n`);
+						updatedContent = content.replace(bibliographyRegex, `## Bibliography\n${bibliographyList}\n`);
 						new Notice("Bibliography updated.");
 					} else {
 						// Add new bibliography at the end
-						updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
-						new Notice("BibTeX references added to the document.");
+						updatedContent = `${content}\n\n## Bibliography\n${bibliographyList}`;
+						new Notice("Bibliography added to the document.");
 					}
 					
 					await this.app.vault.modify(activeFile, updatedContent);
@@ -253,6 +267,102 @@ function extractPagesFromBibtex(bibtex: string): string | null {
 	return match ? match[1] : null;
 }
 
+function formatBibliographyEntry(bibtex: string, format: BibliographyFormat): string {
+	if (format === 'latex') {
+		// Return original BibTeX format
+		return bibtex;
+	} else if (format === 'mla') {
+		// Convert BibTeX to MLA format
+		return convertBibtexToMLA(bibtex);
+	}
+	return bibtex;
+}
+
+function convertBibtexToMLA(bibtex: string): string {
+	try {
+		// Extract BibTeX entry type
+		const typeMatch = bibtex.match(/^@(\w+)\{/);
+		const entryType = typeMatch ? typeMatch[1].toLowerCase() : 'misc';
+		
+		// Extract fields from BibTeX
+		const extractField = (field: string): string | null => {
+			const regex = new RegExp(`${field}\\s*=\\s*[{"]([^}"]+)[}"]`, 'i');
+			const match = bibtex.match(regex);
+			return match ? match[1].trim() : null;
+		};
+		
+		const author = extractField('author');
+		const title = extractField('title');
+		const year = extractField('year');
+		const publisher = extractField('publisher');
+		const journal = extractField('journal');
+		const volume = extractField('volume');
+		const number = extractField('number');
+		const pages = extractField('pages');
+		const address = extractField('address');
+		const edition = extractField('edition');
+		const booktitle = extractField('booktitle');
+		const editor = extractField('editor');
+		
+		let mlaEntry = '';
+		
+		// Format author names (convert "Last, First" to "Last, First.")
+		let formattedAuthor = '';
+		if (author) {
+			const authors = author.split(' and ');
+			if (authors.length === 1) {
+				formattedAuthor = author;
+			} else if (authors.length === 2) {
+				formattedAuthor = `${authors[0]}, and ${authors[1]}`;
+			} else {
+				formattedAuthor = `${authors[0]}, et al.`;
+			}
+		}
+		
+		// Build MLA citation based on entry type
+		if (entryType === 'book') {
+			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
+			if (title) mlaEntry += `*${title}*. `;
+			if (edition) mlaEntry += `${edition} ed. `;
+			if (publisher) mlaEntry += publisher;
+			if (address) mlaEntry += ', ' + address;
+			if (publisher || address) mlaEntry += ', ';
+			if (year) mlaEntry += year + '.';
+		} else if (entryType === 'article') {
+			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
+			if (title) mlaEntry += `"${title}." `;
+			if (journal) mlaEntry += `*${journal}*`;
+			if (volume) mlaEntry += `, vol. ${volume}`;
+			if (number) mlaEntry += `, no. ${number}`;
+			if (year) mlaEntry += `, ${year}`;
+			if (pages) mlaEntry += `, pp. ${pages}`;
+			mlaEntry += '.';
+		} else if (entryType === 'incollection' || entryType === 'inbook') {
+			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
+			if (title) mlaEntry += `"${title}." `;
+			if (booktitle) mlaEntry += `*${booktitle}*`;
+			if (editor) mlaEntry += `, edited by ${editor}`;
+			if (edition) mlaEntry += `, ${edition} ed.`;
+			if (publisher) mlaEntry += ', ' + publisher;
+			if (address) mlaEntry += ', ' + address;
+			if (year) mlaEntry += ', ' + year;
+			if (pages) mlaEntry += `, pp. ${pages}`;
+			mlaEntry += '.';
+		} else {
+			// Generic format for other types
+			if (formattedAuthor) mlaEntry += formattedAuthor + '. ';
+			if (title) mlaEntry += `*${title}*. `;
+			if (publisher) mlaEntry += publisher + ', ';
+			if (year) mlaEntry += year + '.';
+		}
+		
+		return mlaEntry.trim();
+	} catch (error) {
+		// If parsing fails, return the original bibtex
+		return bibtex;
+	}
+}
+
 class LogosPluginSettingTab extends PluginSettingTab {
 	plugin: LogosReferencePlugin;
   
@@ -284,5 +394,19 @@ class LogosPluginSettingTab extends PluginSettingTab {
                 // @ts-ignore
                 text.containerEl.addClass("BibTeX_search");
             });
+
+		new Setting(this.containerEl)
+			.setName("Bibliography format")
+			.setDesc("Format for the generated bibliography")
+			.addDropdown((dropdown) => {
+				dropdown
+					.addOption('latex', 'LaTeX (BibTeX)')
+					.addOption('mla', 'MLA')
+					.setValue(this.plugin.settings.bibliographyFormat)
+					.onChange(async (value) => {
+						this.plugin.settings.bibliographyFormat = value as BibliographyFormat;
+						await this.plugin.saveSettings();
+					});
+			});
 	}
 }
