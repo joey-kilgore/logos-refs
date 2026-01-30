@@ -3,7 +3,7 @@
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/joey-kilgore/logos-refs?style=for-the-badge&sort=semver)
 ![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23483699&label=downloads&query=%24%5B%22logos-refs%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)
 ![GitHub License](https://img.shields.io/github/license/joey-kilgore/logos-refs?style=for-the-badge)
-![Maintenance](https://img.shields.io/maintenance/yes/2025?style=for-the-badge)
+![Maintenance](https://img.shields.io/maintenance/yes/2026?style=for-the-badge)
 
 An [Obsidian](https://obsidian.md) plugin that simplifies referencing and linking material from [Logos Bible Software](https://www.logos.com/). Easily create formatted citations with BibTeX references and automatically generate bibliographies for your notes.
 
