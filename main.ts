@@ -133,7 +133,7 @@ export default class LogosReferencePlugin extends Plugin {
 					return;
 				}
 		
-				// Step 3: Append BibTeX references at the end of the current document
+				// Step 3: Update or create bibliography with BibTeX references
 				const bibtexList = bibtexReferences.join("\n\n");
 			
 				const activeFile = this.app.workspace.getActiveFile();
@@ -141,13 +141,26 @@ export default class LogosReferencePlugin extends Plugin {
 
 				if (activeFile instanceof TFile) {
 					content = await this.app.vault.read(activeFile);
-					const updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
+					
+					// Check if a bibliography already exists and replace it
+					const bibliographyRegex = /## Bibliography\n[\s\S]*?(?=\n##\s|\n---(?:\s|$)|$)/;
+					let updatedContent: string;
+					
+					if (bibliographyRegex.test(content)) {
+						// Replace existing bibliography, preserving spacing before next section
+						updatedContent = content.replace(bibliographyRegex, `## Bibliography\n${bibtexList}\n`);
+						new Notice("Bibliography updated.");
+					} else {
+						// Add new bibliography at the end
+						updatedContent = `${content}\n\n## Bibliography\n${bibtexList}`;
+						new Notice("BibTeX references added to the document.");
+					}
+					
 					await this.app.vault.modify(activeFile, updatedContent);
 				} else {
 					new Notice("Could not read active file: not a valid file.");
 					return;
 				}
-				new Notice("BibTeX references added to the document.");
 			}
 		});
 		
