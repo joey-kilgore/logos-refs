@@ -630,12 +630,17 @@ function convertBibtexToChicago(bibtex: string): string {
 			if (formattedAuthor) chicagoEntry += formattedAuthor + '. ';
 			if (title) chicagoEntry += `*${title}*. `;
 			if (edition && edition !== '1') {
-				const edNum = parseInt(edition.replace(/[^0-9]/g, ''));
-				let suffix = 'th';
-				if (edNum % 10 === 1 && edNum % 100 !== 11) suffix = 'st';
-				else if (edNum % 10 === 2 && edNum % 100 !== 12) suffix = 'nd';
-				else if (edNum % 10 === 3 && edNum % 100 !== 13) suffix = 'rd';
-				chicagoEntry += `${edNum}${suffix} ed. `;
+				const edNum = parseInt(edition.replace(/[^0-9]/g, ''), 10);
+				if (!isNaN(edNum)) {
+					let suffix = 'th';
+					if (edNum % 10 === 1 && edNum % 100 !== 11) suffix = 'st';
+					else if (edNum % 10 === 2 && edNum % 100 !== 12) suffix = 'nd';
+					else if (edNum % 10 === 3 && edNum % 100 !== 13) suffix = 'rd';
+					chicagoEntry += `${edNum}${suffix} ed. `;
+				} else {
+					// If parsing fails, use the edition string as-is
+					chicagoEntry += `${edition} ed. `;
+				}
 			}
 			const pubParts = [];
 			if (address) pubParts.push(address);
