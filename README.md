@@ -45,12 +45,6 @@ Export all your BibTeX references to a single file:
 - Creates a single `.bib` file ready for use with LaTeX or other citation managers
 - Updates existing export file or creates a new one
 
-### 📊 Reference Statistics
-View statistics about your citations:
-- See which sources you cite most frequently
-- Displays top 20 most-cited references
-- Helps identify your key sources at a glance
-
 ## Installation
 
 ### From Obsidian Community Plugins
@@ -211,17 +205,6 @@ After building your reference library, you can export all references to a single
    - Display how many references were exported
 
 This file can be used directly with LaTeX documents or imported into citation managers like Zotero or Mendeley.
-
-### Viewing Reference Statistics
-
-To see which sources you cite most frequently:
-
-1. Use the command palette (Ctrl/Cmd+P) and run **"Show reference statistics"**
-2. A modal will display:
-   - Your top 20 most-cited references
-   - The number of **valid** citations for each reference (only counts citations where the linked note/block still exists)
-   - Helps identify your key sources and citation patterns
-   - Excludes broken references to maintain accuracy
 
 
 ## File Structure & Organization

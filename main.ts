@@ -223,64 +223,6 @@ export default class LogosReferencePlugin extends Plugin {
 			}
 		});
 
-		this.addCommand({
-			id: 'show-reference-statistics',
-			name: 'Show reference statistics',
-			callback: async () => {
-				const folder = this.settings.bibFolder.trim() || '';
-				const abstractFolder = this.app.vault.getAbstractFileByPath(folder);
-				
-				if (!abstractFolder || !(abstractFolder instanceof TFolder)) {
-					new Notice("Reference folder not found. Please check your settings.");
-					return;
-				}
-
-				const stats: Record<string, number> = {};
-				const files = abstractFolder.children;
-
-				for (const file of files) {
-					if (file instanceof TFile && file.extension === 'md') {
-						const content = await this.app.vault.read(file);
-						const citationSection = content.match(/## Citations\n([\s\S]*?)(?=\n##|$)/);
-						if (citationSection) {
-							// Extract all citation lines
-							const citationLines = citationSection[1].split('\n').filter(line => line.trim().startsWith('- '));
-							let validCount = 0;
-							
-							for (const line of citationLines) {
-								// Extract the wiki link from the citation line
-								const linkMatch = line.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/);
-								if (linkMatch) {
-									const linkPath = linkMatch[1];
-									// Check if the linked note/block exists
-									const linkedFile = this.app.metadataCache.getFirstLinkpathDest(linkPath, file.path);
-									if (linkedFile) {
-										validCount++;
-									}
-								}
-							}
-							
-							if (validCount > 0) {
-								stats[file.basename] = validCount;
-							}
-						}
-					}
-				}
-
-				const sortedStats = Object.entries(stats)
-					.sort((a, b) => b[1] - a[1])
-					.slice(0, 20); // Top 20
-
-				if (sortedStats.length === 0) {
-					new Notice("No citation statistics found.");
-					return;
-				}
-
-				const modal = new ReferenceStatsModal(this.app, sortedStats);
-				modal.open();
-			}
-		});
-		
 	  	this.addSettingTab(new LogosPluginSettingTab(this.app, this));
 	}
 
@@ -787,41 +729,6 @@ function convertBibtexToChicago(bibtex: string): string {
 	} catch (error) {
 		// If parsing fails, return the original bibtex
 		return bibtex;
-	}
-}
-
-class ReferenceStatsModal extends Modal {
-	stats: [string, number][];
-
-	constructor(app: App, stats: [string, number][]) {
-		super(app);
-		this.stats = stats;
-	}
-
-	onOpen() {
-		const { contentEl } = this;
-		contentEl.empty();
-		
-		contentEl.createEl('h2', { text: 'Reference Statistics' });
-		contentEl.createEl('p', { text: 'Top cited references in your vault:' });
-		
-		const statsContainer = contentEl.createDiv('reference-stats-container');
-		
-		for (const [reference, count] of this.stats) {
-			const statItem = statsContainer.createDiv('stat-item');
-			statItem.createEl('strong', { text: reference });
-			statItem.createEl('span', { text: `: ${count} citation${count !== 1 ? 's' : ''}` });
-		}
-		
-		const closeButton = contentEl.createEl('button', { text: 'Close' });
-		closeButton.addEventListener('click', () => {
-			this.close();
-		});
-	}
-
-	onClose() {
-		const { contentEl } = this;
-		contentEl.empty();
 	}
 }
 
