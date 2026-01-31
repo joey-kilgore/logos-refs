@@ -381,9 +381,10 @@ function formatInlineCitation(bibtex: string, page: string | null, format: Bibli
 	const author = extractField('author');
 	const year = extractField('year');
 	
+	// Fallback to citekey if we can't extract author/year
+	const citeKey = extractCiteKey(bibtex);
+	
 	if (!author && !year) {
-		// Fallback to citekey if we can't extract author/year
-		const citeKey = extractCiteKey(bibtex);
 		return page ? `${citeKey}, p. ${page}` : citeKey;
 	}
 	
@@ -398,6 +399,11 @@ function formatInlineCitation(bibtex: string, page: string | null, format: Bibli
 			const nameParts = authorParts.trim().split(' ');
 			authorLastName = nameParts[nameParts.length - 1];
 		}
+	}
+	
+	// If we still don't have author or year, fallback to citekey
+	if (!authorLastName || !year) {
+		return page ? `${citeKey}, p. ${page}` : citeKey;
 	}
 	
 	// Format based on style
@@ -424,7 +430,6 @@ function formatInlineCitation(bibtex: string, page: string | null, format: Bibli
 		}
 	} else {
 		// LaTeX/BibTeX - use citekey
-		const citeKey = extractCiteKey(bibtex);
 		if (page) {
 			return `${citeKey}, ${page.includes('-') || page.includes('–') ? 'pp.' : 'p.'} ${page}`;
 		} else {
