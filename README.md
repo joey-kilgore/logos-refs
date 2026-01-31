@@ -105,16 +105,23 @@ https://github.com/user-attachments/assets/444c5892-8e17-43c4-8c8b-27a319315eec
    - Insert a formatted quote block with your copied text
    - Create a link to a reference note (or update an existing one)
    - Add page numbers if they were included in the Logos copy
+   - Format the citation according to your selected bibliography format
    - Create a unique block reference ID for precise linking
 
 **What gets created:**
 
-In your current note:
+In your current note (format varies by selected bibliography format):
 ```markdown
 > [!Logos Ref]
 > Your copied text from Logos appears here
-> [[refs/AuthorYear|AuthorYear, p. 123]] ^AuthorYear-1
+> [[refs/AuthorYear|(Author, 2020, p. 123)]] ^AuthorYear-1
 ```
+
+**Citation format examples:**
+- **LaTeX/BibTeX**: `AuthorYear, p. 123`
+- **APA**: `(Author, 2020, p. 123)`
+- **MLA**: `(Author 123)`
+- **Chicago**: `(Author 2020, 123)`
 
 In the reference note (`refs/AuthorYear.md`):
 ```markdown
@@ -212,8 +219,9 @@ To see which sources you cite most frequently:
 1. Use the command palette (Ctrl/Cmd+P) and run **"Show reference statistics"**
 2. A modal will display:
    - Your top 20 most-cited references
-   - The number of citations for each reference
+   - The number of **valid** citations for each reference (only counts citations where the linked note/block still exists)
    - Helps identify your key sources and citation patterns
+   - Excludes broken references to maintain accuracy
 
 
 ## File Structure & Organization

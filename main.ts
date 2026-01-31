@@ -40,9 +40,8 @@ export default class LogosReferencePlugin extends Plugin {
 				const folder = this.settings.bibFolder.trim() || '';
 				const filePath = folder ? `${folder}/${citeKey}.md` : `${citeKey}.md`;
 
-				const pageLabel = page
-					? `, ${page.includes('-') || page.includes('–') ? 'pp.' : 'p.'} ${page}`
-					: "";
+				// Format inline citation according to selected format
+				const inlineCitation = formatInlineCitation(bibtex, page, this.settings.bibliographyFormat);
 		
 				// Generate block ID using a persistent counter
 				const counters = this.settings.citationCounters;
@@ -57,7 +56,7 @@ export default class LogosReferencePlugin extends Plugin {
 				const quotedText = [
 					`> [!${this.settings.citationCalloutType}]`,
 					`> ${mainText.split('\n').join('\n> ')}`,
-					`> [[${filePath}|${citeKey}${pageLabel}]] ^${blockId}`
+					`> [[${filePath}|${inlineCitation}]] ^${blockId}`
 				].join('\n');
 		
 				editor.replaceSelection(`${quotedText}\n`);
@@ -244,9 +243,26 @@ export default class LogosReferencePlugin extends Plugin {
 						const content = await this.app.vault.read(file);
 						const citationSection = content.match(/## Citations\n([\s\S]*?)(?=\n##|$)/);
 						if (citationSection) {
-							const citations = citationSection[1].match(/^- /gm);
-							const count = citations ? citations.length : 0;
-							stats[file.basename] = count;
+							// Extract all citation lines
+							const citationLines = citationSection[1].split('\n').filter(line => line.trim().startsWith('- '));
+							let validCount = 0;
+							
+							for (const line of citationLines) {
+								// Extract the wiki link from the citation line
+								const linkMatch = line.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/);
+								if (linkMatch) {
+									const linkPath = linkMatch[1];
+									// Check if the linked note/block exists
+									const linkedFile = this.app.metadataCache.getFirstLinkpathDest(linkPath, file.path);
+									if (linkedFile) {
+										validCount++;
+									}
+								}
+							}
+							
+							if (validCount > 0) {
+								stats[file.basename] = validCount;
+							}
 						}
 					}
 				}
@@ -352,6 +368,69 @@ function extractPageNumber(text: string): { cleanedText: string, page: string | 
 function extractPagesFromBibtex(bibtex: string): string | null {
 	const match = bibtex.match(/pages\s*=\s*[{"]([^}"]+)[}"]/i);
 	return match ? match[1] : null;
+}
+
+function formatInlineCitation(bibtex: string, page: string | null, format: BibliographyFormat): string {
+	// Extract fields from BibTeX for inline citation
+	const extractField = (field: string): string | null => {
+		const regex = new RegExp(`${field}\\s*=\\s*[{"]([^}"]+)[}"]`, 'i');
+		const match = bibtex.match(regex);
+		return match ? match[1].trim() : null;
+	};
+	
+	const author = extractField('author');
+	const year = extractField('year');
+	
+	if (!author && !year) {
+		// Fallback to citekey if we can't extract author/year
+		const citeKey = extractCiteKey(bibtex);
+		return page ? `${citeKey}, p. ${page}` : citeKey;
+	}
+	
+	// Extract last name from author field
+	let authorLastName = '';
+	if (author) {
+		// Handle "Last, First" or "First Last" format
+		const authorParts = author.split(' and ')[0]; // Take first author only
+		if (authorParts.includes(',')) {
+			authorLastName = authorParts.split(',')[0].trim();
+		} else {
+			const nameParts = authorParts.trim().split(' ');
+			authorLastName = nameParts[nameParts.length - 1];
+		}
+	}
+	
+	// Format based on style
+	if (format === 'apa') {
+		// APA: (Author, Year, p. 123) or (Author, Year)
+		if (page) {
+			return `(${authorLastName}, ${year}, p. ${page})`;
+		} else {
+			return `(${authorLastName}, ${year})`;
+		}
+	} else if (format === 'chicago') {
+		// Chicago: (Author Year, 123) or (Author Year)
+		if (page) {
+			return `(${authorLastName} ${year}, ${page})`;
+		} else {
+			return `(${authorLastName} ${year})`;
+		}
+	} else if (format === 'mla') {
+		// MLA: (Author 123) or (Author)
+		if (page) {
+			return `(${authorLastName} ${page})`;
+		} else {
+			return `(${authorLastName})`;
+		}
+	} else {
+		// LaTeX/BibTeX - use citekey
+		const citeKey = extractCiteKey(bibtex);
+		if (page) {
+			return `${citeKey}, ${page.includes('-') || page.includes('–') ? 'pp.' : 'p.'} ${page}`;
+		} else {
+			return citeKey;
+		}
+	}
 }
 
 function formatBibliographyEntry(bibtex: string, format: BibliographyFormat): string {
