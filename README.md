@@ -30,13 +30,20 @@ Copy a passage from Logos Bible Software and paste it directly into your Obsidia
 - Handles page numbers intelligently (single page vs. page ranges)
 - Assigns unique block IDs for precise reference tracking
 - Maintains a citation counter for each note
+- Customizable citation callout type
 
 ### 📚 Generate Bibliography
 Automatically compile all BibTeX references from your current note into a formatted bibliography:
 - Scans all links in your document for BibTeX references
-- Supports multiple bibliography formats (LaTeX/BibTeX and MLA)
+- Supports multiple bibliography formats (LaTeX/BibTeX, MLA, APA, and Chicago)
 - Updates existing bibliography sections or creates new ones
 - Removes duplicate entries automatically
+
+### 📤 Export References
+Export all your BibTeX references to a single file:
+- Collects all references from your reference folder
+- Creates a single `.bib` file ready for use with LaTeX or other citation managers
+- Updates existing export file or creates a new one
 
 ## Installation
 
@@ -71,6 +78,13 @@ Specify the folder where reference notes will be created. The plugin provides fo
 Choose how bibliographies are formatted when using the "List all BibTeX references" command:
 - **LaTeX (BibTeX)**: Displays BibTeX entries in code blocks, ideal for academic writing with LaTeX
 - **MLA**: Converts BibTeX to MLA format for humanities writing
+- **APA**: Converts BibTeX to APA format (7th edition style)
+- **Chicago**: Converts BibTeX to Chicago Manual of Style format
+
+### Citation Callout Type
+**Default:** "Logos Ref"
+
+Customize the callout type used for citations. You can change it to any Obsidian callout type you prefer (e.g., "Quote", "Citation", "Note"). This allows you to match your personal note-taking style or use different callout styles for different types of content.
 
 ## Usage
 
@@ -85,16 +99,23 @@ https://github.com/user-attachments/assets/444c5892-8e17-43c4-8c8b-27a319315eec
    - Insert a formatted quote block with your copied text
    - Create a link to a reference note (or update an existing one)
    - Add page numbers if they were included in the Logos copy
+   - Format the citation according to your selected bibliography format
    - Create a unique block reference ID for precise linking
 
 **What gets created:**
 
-In your current note:
+In your current note (format varies by selected bibliography format):
 ```markdown
 > [!Logos Ref]
 > Your copied text from Logos appears here
-> [[refs/AuthorYear|AuthorYear, p. 123]] ^AuthorYear-1
+> [[refs/AuthorYear|(Author, 2020, p. 123)]] ^AuthorYear-1
 ```
+
+**Citation format examples:**
+- **LaTeX/BibTeX**: `AuthorYear, p. 123`
+- **APA**: `(Author, 2020, p. 123)`
+- **MLA**: `(Author 123)`
+- **Chicago**: `(Author 2020, 123)`
 
 In the reference note (`refs/AuthorYear.md`):
 ```markdown
@@ -153,6 +174,38 @@ Author Name. *Book Title*. Publisher, 2020.
 
 Smith, John. "Article Title." *Journal Name*, vol. 10, no. 2, 2019, pp. 45-67.
 ```
+
+**Example output (APA format):**
+```markdown
+## Bibliography
+
+Author Name (2020). *Book Title*. Publisher.
+
+Smith, J. (2019). Article Title. *Journal Name*, *10*(2), 45-67.
+```
+
+**Example output (Chicago format):**
+```markdown
+## Bibliography
+
+Author Name. *Book Title*. Publisher, 2020.
+
+Smith, John. "Article Title." *Journal Name* 10, no. 2 (2019): 45-67.
+```
+
+### Exporting References
+
+After building your reference library, you can export all references to a single BibTeX file:
+
+1. Use the command palette (Ctrl/Cmd+P) and run **"Export all references to BibTeX file"**
+2. The plugin will:
+   - Scan all reference notes in your configured reference folder
+   - Collect all BibTeX entries
+   - Create or update `exported-references.bib` in your vault root
+   - Display how many references were exported
+
+This file can be used directly with LaTeX documents or imported into citation managers like Zotero or Mendeley.
+
 
 ## File Structure & Organization
 
