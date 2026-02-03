@@ -5,7 +5,7 @@
 ![GitHub License](https://img.shields.io/github/license/joey-kilgore/logos-refs?style=for-the-badge)
 ![Maintenance](https://img.shields.io/maintenance/yes/2026?style=for-the-badge)
 
-An [Obsidian](https://obsidian.md) plugin that simplifies referencing and linking material from [Logos Bible Software](https://www.logos.com/). Easily create formatted citations with BibTeX references and automatically generate bibliographies for your notes.
+An [Obsidian](https://obsidian.md) plugin that simplifies referencing and linking material from [Logos Bible Software](https://www.logos.com/). Easily create formatted citations with metadata-based references and automatically generate bibliographies for your notes. Reference metadata is stored in YAML frontmatter format, making it compatible with Obsidian properties, Dataview queries, and the Bases plugin.
 
 ## Table of Contents
 
@@ -26,11 +26,13 @@ An [Obsidian](https://obsidian.md) plugin that simplifies referencing and linkin
 Copy a passage from Logos Bible Software and paste it directly into your Obsidian notes with automatic citation formatting:
 - Creates formatted quote blocks with proper attribution
 - Automatically extracts BibTeX citation data
+- **Generates reference notes with YAML metadata** (compatible with Obsidian properties and the Bases plugin)
 - Generates or updates reference notes with bidirectional links
 - Handles page numbers intelligently (single page vs. page ranges)
 - Assigns unique block IDs for precise reference tracking
 - Maintains a citation counter for each note
 - Customizable citation callout type
+- **Backward compatible** with existing BibTeX code block format
 
 ### 📚 Generate Bibliography
 Automatically compile all BibTeX references from your current note into a formatted bibliography:
@@ -119,14 +121,14 @@ In your current note (format varies by selected bibliography format):
 
 In the reference note (`refs/AuthorYear.md`):
 ```markdown
-\`\`\`bibtex
-@book{AuthorYear,
-  author = {Author Name},
-  title = {Book Title},
-  publisher = {Publisher},
-  year = {2020}
-}
-\`\`\`
+---
+type: book
+citekey: AuthorYear
+author: Author Name
+title: Book Title
+publisher: Publisher
+year: 2020
+---
 
 ## Citations
 - [[YourNote#^AuthorYear-1]] → p. 123
@@ -226,15 +228,35 @@ your-vault/
 
 **Reference Note Structure:**
 Each reference note contains:
-1. A BibTeX code block with the full citation
+1. **YAML frontmatter metadata** with the full citation information (type, author, title, year, publisher, etc.)
 2. A "## Citations" section listing all places where this source is referenced
 3. Bidirectional links back to specific quote blocks in your notes
 
+**Example reference note:**
+```markdown
+---
+type: book
+citekey: Wright2013
+author: Wright, N. T.
+title: Paul and the Faithfulness of God
+publisher: Fortress Press
+year: 2013
+---
+
+## Citations
+- [[Sermon Notes#^Wright2013-1]] → p. 123
+- [[Research Paper#^Wright2013-2]] → pp. 145-150
+```
+
 **Benefits of this structure:**
+- **Metadata Integration**: Works seamlessly with Obsidian's Properties panel and metadata-aware plugins
+- **Bases Plugin Compatible**: Metadata format is fully compatible with the Bases plugin for enhanced querying
+- **Dataview Support**: Query your references using Dataview plugin (e.g., `WHERE type = "book" AND year > 2010`)
 - See all places you've cited a particular source
 - Navigate between quotes and their sources seamlessly
 - Keep your reference library organized and reusable
 - Export BibTeX for use in other tools (LaTeX, Zotero, etc.)
+- **Backward compatible** with existing notes using BibTeX code blocks
 
 ## Development
 
