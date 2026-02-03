@@ -73,10 +73,11 @@ export default class LogosReferencePlugin extends Plugin {
 						// then we need to create the folder
 						await this.app.vault.createFolder(folder);
 					}
+					const metadata = bibtexToMetadata(bibtex);
 					const content = [
-						'```bibtex',
-						bibtex.replace(/pages\s*=\s*{[^}]*},?\s*/gi, ""),  // optionally remove page field
-						'```',
+						'---',
+						metadata,
+						'---',
 						'',
 						'## Citations',
 						`- ${linkBack}`
@@ -197,6 +198,18 @@ export default class LogosReferencePlugin extends Plugin {
 				for (const file of files) {
 					if (file instanceof TFile && file.extension === 'md') {
 						const content = await this.app.vault.read(file);
+						
+						// Try to extract from metadata first (new format)
+						const metadataMatch = content.match(/^---\n([\s\S]*?)\n---/);
+						if (metadataMatch) {
+							const bibtex = metadataToBibtex(metadataMatch[1]);
+							if (bibtex) {
+								bibtexEntries.push(bibtex);
+								continue;
+							}
+						}
+						
+						// Fallback to old BibTeX block format
 						const bibtexMatch = content.match(/```bibtex\n([\s\S]*?)\n```/);
 						if (bibtexMatch) {
 							bibtexEntries.push(bibtexMatch[1].trim());
@@ -246,9 +259,19 @@ export default class LogosReferencePlugin extends Plugin {
 			const file = this.app.vault.getAbstractFileByPath(link);
 			if (file instanceof TFile) {
 				const content = await this.app.vault.read(file);
-				// Updated regex to match BibTeX block
+				
+				// Try to extract from metadata first (new format)
+				const metadataMatch = content.match(/^---\n([\s\S]*?)\n---/);
+				if (metadataMatch) {
+					const bibtex = metadataToBibtex(metadataMatch[1]);
+					if (bibtex) {
+						bibtexReferences.push(bibtex);
+						continue;
+					}
+				}
+				
+				// Fallback to old BibTeX block format for backward compatibility
 				const bibtexMatch = content.match(/```bibtex[\s\S]*?```/);
-
 				if (bibtexMatch) {
 					// Extract the content between the '```bibtex' and '```' markers
 					const bibtexContent = bibtexMatch[0].replace(/```bibtex|```/g, '').trim();
@@ -294,6 +317,104 @@ function extractCiteKey(bibtex: string): string {
 	let citeKey = match[1];
 	citeKey = citeKey.replace(/[_\W]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 	return citeKey;
+}
+
+function bibtexToMetadata(bibtex: string): string {
+	// Extract entry type
+	const typeMatch = bibtex.match(/^@(\w+)\{/);
+	const entryType = typeMatch ? typeMatch[1].toLowerCase() : 'misc';
+	
+	// Extract cite key
+	const citeKey = extractCiteKey(bibtex);
+	
+	// Extract all fields from BibTeX
+	const extractField = (field: string): string | null => {
+		const regex = new RegExp(`${field}\\s*=\\s*[{"]([^}"]+)[}"]`, 'i');
+		const match = bibtex.match(regex);
+		return match ? match[1].trim() : null;
+	};
+	
+	// Common BibTeX fields
+	const fields = [
+		'author', 'title', 'year', 'publisher', 'journal', 
+		'volume', 'number', 'pages', 'address', 'edition',
+		'booktitle', 'editor', 'doi', 'isbn', 'issn',
+		'url', 'note', 'series', 'chapter', 'organization',
+		'school', 'institution', 'howpublished', 'month'
+	];
+	
+	// Build metadata YAML
+	const metadata: string[] = [];
+	metadata.push(`type: ${entryType}`);
+	metadata.push(`citekey: ${citeKey}`);
+	
+	for (const field of fields) {
+		const value = extractField(field);
+		if (value) {
+			// Escape special YAML characters and handle multi-line values
+			const escapedValue = value.includes(':') || value.includes('#') || value.includes('"') 
+				? `"${value.replace(/"/g, '\\"')}"` 
+				: value;
+			metadata.push(`${field}: ${escapedValue}`);
+		}
+	}
+	
+	return metadata.join('\n');
+}
+
+function metadataToBibtex(metadata: string): string | null {
+	try {
+		// Parse YAML-like metadata into key-value pairs
+		const lines = metadata.trim().split('\n');
+		const fields: Record<string, string> = {};
+		
+		for (const line of lines) {
+			const colonIndex = line.indexOf(':');
+			if (colonIndex === -1) continue;
+			
+			const key = line.substring(0, colonIndex).trim();
+			let value = line.substring(colonIndex + 1).trim();
+			
+			// Remove surrounding quotes if present
+			if ((value.startsWith('"') && value.endsWith('"')) || 
+			    (value.startsWith("'") && value.endsWith("'"))) {
+				value = value.substring(1, value.length - 1);
+			}
+			
+			// Unescape quotes
+			value = value.replace(/\\"/g, '"');
+			
+			fields[key.toLowerCase()] = value;
+		}
+		
+		if (!fields.type || !fields.citekey) {
+			return null;
+		}
+		
+		// Build BibTeX entry
+		const bibtexLines: string[] = [];
+		bibtexLines.push(`@${fields.type}{${fields.citekey},`);
+		
+		// Common BibTeX fields in typical order
+		const fieldOrder = [
+			'author', 'title', 'booktitle', 'editor', 'year', 
+			'publisher', 'address', 'edition', 'journal', 'volume', 
+			'number', 'pages', 'chapter', 'series', 'organization',
+			'school', 'institution', 'howpublished', 'month',
+			'doi', 'isbn', 'issn', 'url', 'note'
+		];
+		
+		for (const field of fieldOrder) {
+			if (fields[field] && field !== 'type' && field !== 'citekey') {
+				bibtexLines.push(`  ${field} = {${fields[field]}},`);
+			}
+		}
+		
+		bibtexLines.push('}');
+		return bibtexLines.join('\n');
+	} catch (error) {
+		return null;
+	}
 }
 
 function extractPageNumber(text: string): { cleanedText: string, page: string | null } {
