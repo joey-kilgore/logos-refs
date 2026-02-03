@@ -332,7 +332,9 @@ function bibtexToMetadata(bibtex: string): string {
 	// Extract all fields from BibTeX
 	const extractField = (field: string): string | null => {
 		// Match field = {value} or field = "value"
-		// This regex handles nested braces by matching everything until the final closing brace
+		// Note: This regex handles one level of nested braces. BibTeX fields with
+		// multiple levels of nesting (rare in practice) may not be fully extracted.
+		// For the typical Logos output, this is sufficient.
 		const braceRegex = new RegExp(`${field}\\s*=\\s*\\{([^{}]*(?:\\{[^{}]*\\}[^{}]*)*)\\}`, 'i');
 		const quoteRegex = new RegExp(`${field}\\s*=\\s*"([^"]*)"`, 'i');
 		
@@ -366,10 +368,14 @@ function bibtexToMetadata(bibtex: string): string {
 			// - backslashes as \\
 			// - double quotes as \"
 			// - newlines as \n
+			// - tabs as \t
+			// - carriage returns as \r
 			const escapedValue = value
 				.replace(/\\/g, '\\\\')  // Escape backslashes first
 				.replace(/"/g, '\\"')     // Then escape quotes
-				.replace(/\n/g, '\\n');   // Escape newlines
+				.replace(/\n/g, '\\n')    // Escape newlines
+				.replace(/\r/g, '\\r')    // Escape carriage returns
+				.replace(/\t/g, '\\t');   // Escape tabs
 			
 			metadata.push(`${field}: "${escapedValue}"`);
 		}
@@ -397,8 +403,12 @@ function metadataToBibtex(metadata: string): string | null {
 				    (value.startsWith("'") && value.endsWith("'"))) {
 					value = value.slice(1, -1);
 					// Unescape YAML double-quoted string escapes
+					// Note: Order matters! Must unescape in reverse order of escaping
+					// to correctly handle sequences like \\" which should become "
 					value = value
 						.replace(/\\n/g, '\n')   // Unescape newlines
+						.replace(/\\r/g, '\r')   // Unescape carriage returns
+						.replace(/\\t/g, '\t')   // Unescape tabs
 						.replace(/\\"/g, '"')    // Unescape quotes
 						.replace(/\\\\/g, '\\'); // Unescape backslashes (must be last)
 				}
