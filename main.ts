@@ -73,7 +73,9 @@ export default class LogosReferencePlugin extends Plugin {
 						// then we need to create the folder
 						await this.app.vault.createFolder(folder);
 					}
-					const metadata = bibtexToMetadata(bibtex);
+					// Remove pages field from bibtex before converting to metadata
+					const bibtexWithoutPages = bibtex.replace(/pages\s*=\s*{[^}]*},?\s*/gi, "");
+					const metadata = bibtexToMetadata(bibtexWithoutPages);
 					const content = [
 						'---',
 						metadata,
@@ -351,10 +353,30 @@ function bibtexToMetadata(bibtex: string): string {
 	for (const field of fields) {
 		const value = extractField(field);
 		if (value) {
-			// Escape special YAML characters and handle multi-line values
-			const escapedValue = value.includes(':') || value.includes('#') || value.includes('"') 
-				? `"${value.replace(/"/g, '\\"')}"` 
-				: value;
+			// Escape special YAML characters properly
+			let escapedValue = value;
+			
+			// Values that need quoting in YAML
+			const needsQuoting = 
+				value.includes(':') || 
+				value.includes('#') || 
+				value.includes('"') ||
+				value.includes('\n') ||
+				value.startsWith('[') ||
+				value.startsWith('{') ||
+				value.startsWith('&') ||
+				value.startsWith('*') ||
+				value.startsWith('!') ||
+				value.startsWith('|') ||
+				value.startsWith('>') ||
+				value.startsWith(' ') ||
+				value.endsWith(' ');
+			
+			if (needsQuoting) {
+				// Escape double quotes and wrap in quotes
+				escapedValue = `"${value.replace(/"/g, '\\"')}"`;
+			}
+			
 			metadata.push(`${field}: ${escapedValue}`);
 		}
 	}
@@ -376,13 +398,14 @@ function metadataToBibtex(metadata: string): string | null {
 			let value = line.substring(colonIndex + 1).trim();
 			
 			// Remove surrounding quotes if present
-			if ((value.startsWith('"') && value.endsWith('"')) || 
-			    (value.startsWith("'") && value.endsWith("'"))) {
-				value = value.substring(1, value.length - 1);
+			if (value.length >= 2) {
+				if ((value.startsWith('"') && value.endsWith('"')) || 
+				    (value.startsWith("'") && value.endsWith("'"))) {
+					value = value.slice(1, -1);
+					// Unescape quotes
+					value = value.replace(/\\"/g, '"');
+				}
 			}
-			
-			// Unescape quotes
-			value = value.replace(/\\"/g, '"');
 			
 			fields[key.toLowerCase()] = value;
 		}
