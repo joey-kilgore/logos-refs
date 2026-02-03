@@ -331,8 +331,16 @@ function bibtexToMetadata(bibtex: string): string {
 	
 	// Extract all fields from BibTeX
 	const extractField = (field: string): string | null => {
-		const regex = new RegExp(`${field}\\s*=\\s*[{"]([^}"]+)[}"]`, 'i');
-		const match = bibtex.match(regex);
+		// Match field = {value} or field = "value"
+		// This regex handles nested braces by matching everything until the final closing brace
+		const braceRegex = new RegExp(`${field}\\s*=\\s*\\{([^{}]*(?:\\{[^{}]*\\}[^{}]*)*)\\}`, 'i');
+		const quoteRegex = new RegExp(`${field}\\s*=\\s*"([^"]*)"`, 'i');
+		
+		let match = bibtex.match(braceRegex);
+		if (!match) {
+			match = bibtex.match(quoteRegex);
+		}
+		
 		return match ? match[1].trim() : null;
 	};
 	
@@ -353,31 +361,17 @@ function bibtexToMetadata(bibtex: string): string {
 	for (const field of fields) {
 		const value = extractField(field);
 		if (value) {
-			// Escape special YAML characters properly
-			let escapedValue = value;
+			// Always quote values to avoid YAML parsing issues
+			// In YAML double-quoted strings, we need to escape:
+			// - backslashes as \\
+			// - double quotes as \"
+			// - newlines as \n
+			const escapedValue = value
+				.replace(/\\/g, '\\\\')  // Escape backslashes first
+				.replace(/"/g, '\\"')     // Then escape quotes
+				.replace(/\n/g, '\\n');   // Escape newlines
 			
-			// Values that need quoting in YAML
-			const needsQuoting = 
-				value.includes(':') || 
-				value.includes('#') || 
-				value.includes('"') ||
-				value.includes('\n') ||
-				value.startsWith('[') ||
-				value.startsWith('{') ||
-				value.startsWith('&') ||
-				value.startsWith('*') ||
-				value.startsWith('!') ||
-				value.startsWith('|') ||
-				value.startsWith('>') ||
-				value.startsWith(' ') ||
-				value.endsWith(' ');
-			
-			if (needsQuoting) {
-				// Escape double quotes and wrap in quotes
-				escapedValue = `"${value.replace(/"/g, '\\"')}"`;
-			}
-			
-			metadata.push(`${field}: ${escapedValue}`);
+			metadata.push(`${field}: "${escapedValue}"`);
 		}
 	}
 	
@@ -402,8 +396,11 @@ function metadataToBibtex(metadata: string): string | null {
 				if ((value.startsWith('"') && value.endsWith('"')) || 
 				    (value.startsWith("'") && value.endsWith("'"))) {
 					value = value.slice(1, -1);
-					// Unescape quotes
-					value = value.replace(/\\"/g, '"');
+					// Unescape YAML double-quoted string escapes
+					value = value
+						.replace(/\\n/g, '\n')   // Unescape newlines
+						.replace(/\\"/g, '"')    // Unescape quotes
+						.replace(/\\\\/g, '\\'); // Unescape backslashes (must be last)
 				}
 			}
 			
