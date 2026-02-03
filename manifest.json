@@ -1,7 +1,7 @@
 {
 	"id": "logos-refs",
 	"name": "logos-refs",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"minAppVersion": "0.15.0",
 	"description": "Easily take refs from Logos and connect them within your notes",
 	"author": "Joey Kilgore",
