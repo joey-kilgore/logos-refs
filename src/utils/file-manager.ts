@@ -67,10 +67,10 @@ export async function createOrUpdateReferenceNote(
 }
 
 export async function getAllLinksInDocument(app: App, filePath: string): Promise<string[]> {
-	const abstractFile = app.vault.getAbstractFileByPath(filePath);
-	if (!(abstractFile instanceof TFile)) return [];
+	const file = app.vault.getAbstractFileByPath(filePath);
+	if (!(file instanceof TFile)) return [];
 
-	const cache = app.metadataCache.getFileCache(abstractFile);
+	const cache = app.metadataCache.getFileCache(file);
 	if (!cache || !cache.links) return [];
 
 	// Extract just the link target (removing any alias), and remove duplicates
@@ -81,9 +81,9 @@ export async function getAllLinksInDocument(app: App, filePath: string): Promise
 export async function getBibtexFromLinks(app: App, links: string[]): Promise<string[]> {
 	const bibtexReferences: string[] = [];
 	for (const link of links) {
-		const file = app.vault.getAbstractFileByPath(link);
-		if (file instanceof TFile) {
-			const content = await app.vault.read(file);
+		const abstractFile = app.vault.getAbstractFileByPath(link);
+		if (abstractFile instanceof TFile) {
+			const content = await app.vault.read(abstractFile);
 			
 			// Try to extract from metadata first (new format)
 			const metadataMatch = content.match(/^---\n([\s\S]*?)\n---/);
@@ -133,14 +133,14 @@ export async function collectReferencesFromFolder(
 	app: App,
 	folder: string
 ): Promise<string[]> {
-	const abstractFolder = app.vault.getAbstractFileByPath(folder);
+	const abstractFile = app.vault.getAbstractFileByPath(folder);
 	
-	if (!abstractFolder || !(abstractFolder instanceof TFolder)) {
+	if (!abstractFile || !(abstractFile instanceof TFolder)) {
 		throw new Error("Reference folder not found");
 	}
 
 	const bibtexEntries: string[] = [];
-	const files = abstractFolder.children;
+	const files = abstractFile.children;
 
 	for (const file of files) {
 		if (file instanceof TFile && file.extension === 'md') {

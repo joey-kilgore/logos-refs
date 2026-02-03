@@ -52,7 +52,7 @@ export default class LogosReferencePlugin extends Plugin {
 				} else {
 					counters[notePath]++;
 				}
-				const blockId = `${citeKey.replace(' ','-')}-${counters[notePath]}`;
+				const blockId = `${citeKey.replace(/\s/g, '-')}-${counters[notePath]}`;
 				await this.saveSettings();
 		
 				const quotedText = [

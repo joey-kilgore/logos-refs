@@ -260,6 +260,27 @@ year: 2013
 
 ## Development
 
+### Code Structure
+
+The plugin source code is organized in a modular structure for maintainability:
+
+```
+src/
+├── main.ts                      # Plugin entry point and command orchestration
+├── settings.ts                  # Settings interface and UI
+├── types.ts                     # TypeScript type definitions
+├── ui/                          # User interface components
+│   ├── folder-suggest.ts        # Folder autocomplete
+│   └── suggest.ts               # Base suggestion classes
+└── utils/                       # Utility functions
+    ├── bibtex-converter.ts      # BibTeX ↔ YAML conversion
+    ├── citation-formatter.ts    # Citation formatting (LaTeX, MLA, APA, Chicago)
+    ├── clipboard-parser.ts      # Parse Logos clipboard data
+    └── file-manager.ts          # File operations
+```
+
+Each module has a single responsibility, making the code easier to test and maintain. See [`src/README.md`](src/README.md) for detailed documentation.
+
 ### Building from Source
 
 ```bash
