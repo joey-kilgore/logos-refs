@@ -35,7 +35,7 @@ export default class LogosReferencePlugin extends Plugin {
 					return;
 				}
 				
-				const notePath = file.name
+				const noteKey = file.path
 				const clipboard = await navigator.clipboard.readText();
 				const { mainText, bibtex, page } = parseLogosClipboard(clipboard);
 				const citeKey = extractCiteKey(bibtex);
@@ -47,12 +47,12 @@ export default class LogosReferencePlugin extends Plugin {
 		
 				// Generate block ID using a persistent counter
 				const counters = this.settings.citationCounters;
-				if (!counters[notePath]) {
-					counters[notePath] = 1;
+				if (!counters[noteKey]) {
+					counters[noteKey] = 1;
 				} else {
-					counters[notePath]++;
+					counters[noteKey]++;
 				}
-				const blockId = `${citeKey.replace(/\s/g, '-')}-${counters[notePath]}`;
+				const blockId = `${citeKey.replace(/\s/g, '-')}-${counters[noteKey]}`;
 				await this.saveSettings();
 		
 				const quotedText = [
@@ -64,7 +64,7 @@ export default class LogosReferencePlugin extends Plugin {
 				editor.replaceSelection(`${quotedText}\n`);
 		
 				// Create or update reference file
-				const linkBack = `[[${file.basename}#^${blockId}]]${page ? ` → p. ${page}` : ''}`;
+				const linkBack = `[[${file.path.replace(/\.md$/, '')}#^${blockId}]]${page ? ` → p. ${page}` : ''}`;
 				
 				try {
 					await createOrUpdateReferenceNote(this.app, filePath, folder, bibtex, linkBack);
