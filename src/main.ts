@@ -26,30 +26,40 @@ export default class LogosReferencePlugin extends Plugin {
 	async onload() {
 		await this.loadSettings();
 
-		this.registerEvent(this.app.workspace.on('file-open', async (file) => {
-			if (!(file instanceof TFile) || file.extension !== 'md') {
-				return;
-			}
-
-			const folder = this.settings.bibFolder.trim().replace(/\/+$/, '');
-			const inReferenceFolder = folder ? file.path.startsWith(`${folder}/`) : false;
-			const cache = this.app.metadataCache.getFileCache(file);
-			const hasCitekey = typeof cache?.frontmatter?.citekey === 'string';
-
-			if (!inReferenceFolder && !hasCitekey) {
-				return;
-			}
-
-			try {
-				const removedCount = await cleanStaleCitationBacklinks(this.app, file);
-				if (removedCount > 0) {
-					const pluralSuffix = removedCount === 1 ? '' : 's';
-					new Notice(`Cleaned ${removedCount} stale citation backlink${pluralSuffix}.`);
+		this.addCommand({
+			id: 'clean-reference-citations',
+			name: 'Clean stale citation backlinks',
+			checkCallback: (checking: boolean) => {
+				const file = this.app.workspace.getActiveFile();
+				if (!(file instanceof TFile)) {
+					return false;
 				}
-			} catch (error) {
-				console.error(`Error cleaning stale citation backlinks for ${file.path}`, error);
+				const folder = this.settings.bibFolder.trim().replace(/\/+$/, '');
+				const inReferenceFolder = folder ? file.path.startsWith(`${folder}/`) : false;
+				const cache = this.app.metadataCache.getFileCache(file);
+				const hasCitekey = typeof cache?.frontmatter?.citekey === 'string';
+
+				if (!inReferenceFolder && !hasCitekey) {
+					return false;
+				}
+
+				if (!checking) {
+					cleanStaleCitationBacklinks(this.app, file).then((removedCount) => {
+						if (removedCount > 0) {
+							const pluralSuffix = removedCount === 1 ? '' : 's';
+							new Notice(`Cleaned ${removedCount} stale citation backlink${pluralSuffix}.`);
+						} else {
+							new Notice('No stale citation backlinks found.');
+						}
+					}).catch((error) => {
+						console.error(`Error cleaning stale citation backlinks for ${file.path}`, error);
+						new Notice('Error cleaning citation backlinks. See console for details.');
+					});
+				}
+
+				return true;
 			}
-		}));
+		});
 
 		this.addCommand({
 			id: 'paste-logos-reference',
