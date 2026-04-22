@@ -47,7 +47,7 @@ export default class LogosReferencePlugin extends Plugin {
 					new Notice(`Cleaned ${removedCount} stale citation backlink${suffix}.`);
 				}
 			} catch (error) {
-				console.error('Error cleaning stale citation backlinks', error);
+				console.error(`Error cleaning stale citation backlinks for ${file.path}`, error);
 			}
 		}));
 

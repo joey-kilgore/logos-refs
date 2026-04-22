@@ -7,6 +7,9 @@ import { bibtexToMetadata, metadataToBibtex } from './bibtex-converter';
 import type { BibliographyFormat } from '../types';
 import { formatBibliographyEntry } from './citation-formatter';
 
+const CITATIONS_SECTION_REGEX = /(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/;
+const BACKLINK_WITH_BLOCK_REGEX = /\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/;
+
 export async function createOrUpdateReferenceNote(
 	app: App,
 	filePath: string,
@@ -71,7 +74,7 @@ export async function cleanStaleCitationBacklinks(
 	referenceFile: TFile
 ): Promise<number> {
 	const content = await app.vault.read(referenceFile);
-	const citationsSectionMatch = content.match(/(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/);
+	const citationsSectionMatch = content.match(CITATIONS_SECTION_REGEX);
 	if (!citationsSectionMatch) {
 		return 0;
 	}
@@ -79,47 +82,46 @@ export async function cleanStaleCitationBacklinks(
 	const [, citationsHeading, citationsBody] = citationsSectionMatch;
 	const citationLines = citationsBody.split('\n');
 	let removedCount = 0;
+	const cleanedCitationLines: string[] = [];
 
-	const cleanedCitationLines = await Promise.all(
-		citationLines.map(async (line) => {
-			const trimmedLine = line.trim();
-			if (!trimmedLine) {
-				return line;
-			}
+	for (const line of citationLines) {
+		const trimmedLine = line.trim();
+		if (!trimmedLine) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
 
-			const backlinkMatch = line.match(/\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/);
-			if (!backlinkMatch) {
-				return line;
-			}
+		const backlinkMatch = line.match(BACKLINK_WITH_BLOCK_REGEX);
+		if (!backlinkMatch) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
 
-			const [, linkPath, blockId] = backlinkMatch;
-			const targetFile = app.metadataCache.getFirstLinkpathDest(linkPath, referenceFile.path);
+		const [, linkPath, blockId] = backlinkMatch;
+		const targetFile = app.metadataCache.getFirstLinkpathDest(linkPath, referenceFile.path);
 
-			if (!(targetFile instanceof TFile)) {
-				removedCount++;
-				return null;
-			}
+		if (!(targetFile instanceof TFile)) {
+			removedCount++;
+			continue;
+		}
 
-			const targetContent = await app.vault.read(targetFile);
-			if (!targetContent.includes(`^${blockId}`)) {
-				removedCount++;
-				return null;
-			}
+		const targetContent = await app.vault.read(targetFile);
+		if (!targetContent.includes(`^${blockId}`)) {
+			removedCount++;
+			continue;
+		}
 
-			return line;
-		})
-	);
+		cleanedCitationLines.push(line);
+	}
 
 	if (removedCount === 0) {
 		return 0;
 	}
 
-	const updatedCitationsBody = cleanedCitationLines
-		.filter((line): line is string => line !== null)
-		.join('\n');
+	const updatedCitationsBody = cleanedCitationLines.join('\n');
 	const updatedCitationsSection = `${citationsHeading}${updatedCitationsBody}`;
 	const updatedContent = content.replace(
-		/(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/,
+		CITATIONS_SECTION_REGEX,
 		updatedCitationsSection
 	);
 
