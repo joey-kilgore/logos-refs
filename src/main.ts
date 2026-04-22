@@ -43,8 +43,8 @@ export default class LogosReferencePlugin extends Plugin {
 			try {
 				const removedCount = await cleanStaleCitationBacklinks(this.app, file);
 				if (removedCount > 0) {
-					const suffix = removedCount === 1 ? '' : 's';
-					new Notice(`Cleaned ${removedCount} stale citation backlink${suffix}.`);
+					const pluralSuffix = removedCount === 1 ? '' : 's';
+					new Notice(`Cleaned ${removedCount} stale citation backlink${pluralSuffix}.`);
 				}
 			} catch (error) {
 				console.error(`Error cleaning stale citation backlinks for ${file.path}`, error);

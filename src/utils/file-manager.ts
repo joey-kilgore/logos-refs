@@ -10,6 +10,15 @@ import { formatBibliographyEntry } from './citation-formatter';
 const CITATIONS_SECTION_REGEX = /(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/;
 const BACKLINK_WITH_BLOCK_REGEX = /\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/;
 
+function escapeRegex(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function fileContainsBlockId(content: string, blockId: string): boolean {
+	const exactBlockIdRegex = new RegExp(`(?:^|\\s)\\^${escapeRegex(blockId)}(?=$|\\s)`, 'm');
+	return exactBlockIdRegex.test(content);
+}
+
 export async function createOrUpdateReferenceNote(
 	app: App,
 	filePath: string,
@@ -105,8 +114,16 @@ export async function cleanStaleCitationBacklinks(
 			continue;
 		}
 
+		const targetCache = app.metadataCache.getFileCache(targetFile);
+		const hasBlockInCache = targetCache?.blocks && Object.prototype.hasOwnProperty.call(targetCache.blocks, blockId);
+
+		if (hasBlockInCache) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
+
 		const targetContent = await app.vault.read(targetFile);
-		if (!targetContent.includes(`^${blockId}`)) {
+		if (!fileContainsBlockId(targetContent, blockId)) {
 			removedCount++;
 			continue;
 		}
