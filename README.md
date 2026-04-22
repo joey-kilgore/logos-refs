@@ -31,6 +31,7 @@ Copy a passage from Logos Bible Software and paste it directly into your Obsidia
 - Handles page numbers intelligently (single page vs. page ranges)
 - Assigns unique block IDs for precise reference tracking
 - Maintains a citation counter for each note
+- Automatically removes stale citation backlinks from reference notes when opened
 - Customizable citation callout type
 - **Backward compatible** with existing BibTeX code block format
 

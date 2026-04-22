@@ -12,6 +12,7 @@ import { bibtexToMetadata } from './utils/bibtex-converter';
 import { formatInlineCitation } from './utils/citation-formatter';
 import {
 	createOrUpdateReferenceNote,
+	cleanStaleCitationBacklinks,
 	getAllLinksInDocument,
 	getBibtexFromLinks,
 	updateBibliographyInDocument,
@@ -24,6 +25,31 @@ export default class LogosReferencePlugin extends Plugin {
   
 	async onload() {
 		await this.loadSettings();
+
+		this.registerEvent(this.app.workspace.on('file-open', async (file) => {
+			if (!(file instanceof TFile) || file.extension !== 'md') {
+				return;
+			}
+
+			const folder = this.settings.bibFolder.trim();
+			const inReferenceFolder = folder ? file.path.startsWith(`${folder}/`) : false;
+			const cache = this.app.metadataCache.getFileCache(file);
+			const hasCitekey = typeof cache?.frontmatter?.citekey === 'string';
+
+			if (!inReferenceFolder && !hasCitekey) {
+				return;
+			}
+
+			try {
+				const removedCount = await cleanStaleCitationBacklinks(this.app, file);
+				if (removedCount > 0) {
+					const suffix = removedCount === 1 ? '' : 's';
+					new Notice(`Cleaned ${removedCount} stale citation backlink${suffix}.`);
+				}
+			} catch (error) {
+				console.error('Error cleaning stale citation backlinks', error);
+			}
+		}));
 
 		this.addCommand({
 			id: 'paste-logos-reference',

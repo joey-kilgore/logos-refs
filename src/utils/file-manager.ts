@@ -66,6 +66,67 @@ export async function createOrUpdateReferenceNote(
 	}
 }
 
+export async function cleanStaleCitationBacklinks(
+	app: App,
+	referenceFile: TFile
+): Promise<number> {
+	const content = await app.vault.read(referenceFile);
+	const citationsSectionMatch = content.match(/(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/);
+	if (!citationsSectionMatch) {
+		return 0;
+	}
+
+	const [, citationsHeading, citationsBody] = citationsSectionMatch;
+	const citationLines = citationsBody.split('\n');
+	let removedCount = 0;
+
+	const cleanedCitationLines = await Promise.all(
+		citationLines.map(async (line) => {
+			const trimmedLine = line.trim();
+			if (!trimmedLine) {
+				return line;
+			}
+
+			const backlinkMatch = line.match(/\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/);
+			if (!backlinkMatch) {
+				return line;
+			}
+
+			const [, linkPath, blockId] = backlinkMatch;
+			const targetFile = app.metadataCache.getFirstLinkpathDest(linkPath, referenceFile.path);
+
+			if (!(targetFile instanceof TFile)) {
+				removedCount++;
+				return null;
+			}
+
+			const targetContent = await app.vault.read(targetFile);
+			if (!targetContent.includes(`^${blockId}`)) {
+				removedCount++;
+				return null;
+			}
+
+			return line;
+		})
+	);
+
+	if (removedCount === 0) {
+		return 0;
+	}
+
+	const updatedCitationsBody = cleanedCitationLines
+		.filter((line): line is string => line !== null)
+		.join('\n');
+	const updatedCitationsSection = `${citationsHeading}${updatedCitationsBody}`;
+	const updatedContent = content.replace(
+		/(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/,
+		updatedCitationsSection
+	);
+
+	await app.vault.modify(referenceFile, updatedContent);
+	return removedCount;
+}
+
 export async function getAllLinksInDocument(app: App, filePath: string): Promise<string[]> {
 	const file = app.vault.getAbstractFileByPath(filePath);
 	if (!(file instanceof TFile)) return [];
