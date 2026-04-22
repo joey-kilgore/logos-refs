@@ -10,13 +10,16 @@ import { formatBibliographyEntry } from './citation-formatter';
 const CITATIONS_SECTION_REGEX = /(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/;
 const BACKLINK_WITH_BLOCK_REGEX = /\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/;
 
-function escapeRegex(value: string): string {
-	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
 function fileContainsBlockId(content: string, blockId: string): boolean {
-	const exactBlockIdRegex = new RegExp(`(?:^|\\s)\\^${escapeRegex(blockId)}(?=$|\\s)`, 'm');
-	return exactBlockIdRegex.test(content);
+	const marker = `^${blockId}`;
+	return content.split('\n').some((line) => {
+		const trimmedLine = line.trimEnd();
+		if (!trimmedLine.endsWith(marker)) {
+			return false;
+		}
+		const markerIndex = trimmedLine.lastIndexOf(marker);
+		return markerIndex === 0 || /\s/.test(trimmedLine[markerIndex - 1]);
+	});
 }
 
 export async function createOrUpdateReferenceNote(
@@ -92,6 +95,8 @@ export async function cleanStaleCitationBacklinks(
 	const citationLines = citationsBody.split('\n');
 	let removedCount = 0;
 	const cleanedCitationLines: string[] = [];
+	const fileContentCache = new Map<string, string>();
+	const cachedBlockIdsByFile = new Map<string, Set<string>>();
 
 	for (const line of citationLines) {
 		const trimmedLine = line.trim();
@@ -114,15 +119,25 @@ export async function cleanStaleCitationBacklinks(
 			continue;
 		}
 
-		const targetCache = app.metadataCache.getFileCache(targetFile);
-		const hasBlockInCache = targetCache?.blocks && Object.prototype.hasOwnProperty.call(targetCache.blocks, blockId);
+		if (!cachedBlockIdsByFile.has(targetFile.path)) {
+			const targetCache = app.metadataCache.getFileCache(targetFile);
+			const blockIds = targetCache?.blocks ? new Set(Object.keys(targetCache.blocks)) : new Set<string>();
+			cachedBlockIdsByFile.set(targetFile.path, blockIds);
+		}
 
+		const cachedBlockIds = cachedBlockIdsByFile.get(targetFile.path);
+		const hasBlockInCache = !!cachedBlockIds?.has(blockId);
 		if (hasBlockInCache) {
 			cleanedCitationLines.push(line);
 			continue;
 		}
 
-		const targetContent = await app.vault.read(targetFile);
+		if (!fileContentCache.has(targetFile.path)) {
+			const fileContent = await app.vault.read(targetFile);
+			fileContentCache.set(targetFile.path, fileContent);
+		}
+
+		const targetContent = fileContentCache.get(targetFile.path)!;
 		if (!fileContainsBlockId(targetContent, blockId)) {
 			removedCount++;
 			continue;

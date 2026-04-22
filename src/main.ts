@@ -31,7 +31,7 @@ export default class LogosReferencePlugin extends Plugin {
 				return;
 			}
 
-			const folder = this.settings.bibFolder.trim();
+			const folder = this.settings.bibFolder.trim().replace(/\/+$/, '');
 			const inReferenceFolder = folder ? file.path.startsWith(`${folder}/`) : false;
 			const cache = this.app.metadataCache.getFileCache(file);
 			const hasCitekey = typeof cache?.frontmatter?.citekey === 'string';
