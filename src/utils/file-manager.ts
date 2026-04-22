@@ -7,6 +7,21 @@ import { bibtexToMetadata, metadataToBibtex } from './bibtex-converter';
 import type { BibliographyFormat } from '../types';
 import { formatBibliographyEntry } from './citation-formatter';
 
+const CITATIONS_SECTION_REGEX = /(## Citations\s*\n)([\s\S]*?)(?=\n##\s|$)/;
+const BACKLINK_WITH_BLOCK_REGEX = /\[\[([^\]|#]+)#\^([^\]|]+)(?:\|[^\]]*)?\]\]/;
+
+function fileContainsBlockId(content: string, blockId: string): boolean {
+	const marker = `^${blockId}`;
+	return content.split('\n').some((line) => {
+		const trimmedLine = line.trimEnd();
+		if (!trimmedLine.endsWith(marker)) {
+			return false;
+		}
+		const markerIndex = trimmedLine.lastIndexOf(marker);
+		return markerIndex === 0 || /\s/.test(trimmedLine[markerIndex - 1]);
+	});
+}
+
 export async function createOrUpdateReferenceNote(
 	app: App,
 	filePath: string,
@@ -64,6 +79,86 @@ export async function createOrUpdateReferenceNote(
 			await app.vault.modify(abstractFile, updatedContent);
 		}
 	}
+}
+
+export async function cleanStaleCitationBacklinks(
+	app: App,
+	referenceFile: TFile
+): Promise<number> {
+	const content = await app.vault.read(referenceFile);
+	const citationsSectionMatch = content.match(CITATIONS_SECTION_REGEX);
+	if (!citationsSectionMatch) {
+		return 0;
+	}
+
+	const [, citationsHeading, citationsBody] = citationsSectionMatch;
+	const citationLines = citationsBody.split('\n');
+	let removedCount = 0;
+	const cleanedCitationLines: string[] = [];
+	const fileContentCache = new Map<string, string>();
+	const cachedBlockIdsByFile = new Map<string, Set<string>>();
+
+	for (const line of citationLines) {
+		const trimmedLine = line.trim();
+		if (!trimmedLine) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
+
+		const backlinkMatch = line.match(BACKLINK_WITH_BLOCK_REGEX);
+		if (!backlinkMatch) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
+
+		const [, linkPath, blockId] = backlinkMatch;
+		const targetFile = app.metadataCache.getFirstLinkpathDest(linkPath, referenceFile.path);
+
+		if (!(targetFile instanceof TFile)) {
+			removedCount++;
+			continue;
+		}
+
+		if (!cachedBlockIdsByFile.has(targetFile.path)) {
+			const targetCache = app.metadataCache.getFileCache(targetFile);
+			const blockIds = targetCache?.blocks ? new Set(Object.keys(targetCache.blocks)) : new Set<string>();
+			cachedBlockIdsByFile.set(targetFile.path, blockIds);
+		}
+
+		const cachedBlockIds = cachedBlockIdsByFile.get(targetFile.path);
+		const hasBlockInCache = !!cachedBlockIds?.has(blockId);
+		if (hasBlockInCache) {
+			cleanedCitationLines.push(line);
+			continue;
+		}
+
+		if (!fileContentCache.has(targetFile.path)) {
+			const fileContent = await app.vault.read(targetFile);
+			fileContentCache.set(targetFile.path, fileContent);
+		}
+
+		const targetContent = fileContentCache.get(targetFile.path)!;
+		if (!fileContainsBlockId(targetContent, blockId)) {
+			removedCount++;
+			continue;
+		}
+
+		cleanedCitationLines.push(line);
+	}
+
+	if (removedCount === 0) {
+		return 0;
+	}
+
+	const updatedCitationsBody = cleanedCitationLines.join('\n');
+	const updatedCitationsSection = `${citationsHeading}${updatedCitationsBody}`;
+	const updatedContent = content.replace(
+		CITATIONS_SECTION_REGEX,
+		updatedCitationsSection
+	);
+
+	await app.vault.modify(referenceFile, updatedContent);
+	return removedCount;
 }
 
 export async function getAllLinksInDocument(app: App, filePath: string): Promise<string[]> {

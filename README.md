@@ -34,6 +34,12 @@ Copy a passage from Logos Bible Software and paste it directly into your Obsidia
 - Customizable citation callout type
 - **Backward compatible** with existing BibTeX code block format
 
+### 🧹 Clean Stale Citation Backlinks
+Remove broken citation entries from reference notes with a single command:
+- Checks every backlink in a reference note's `## Citations` section
+- Removes entries whose source block no longer exists in the linked note
+- Only available when the active note is a reference note (in your refs folder or has a `citekey` frontmatter field)
+
 ### 📚 Generate Bibliography
 Automatically compile all BibTeX references from your current note into a formatted bibliography:
 - Scans all links in your document for BibTeX references
@@ -207,6 +213,19 @@ After building your reference library, you can export all references to a single
    - Display how many references were exported
 
 This file can be used directly with LaTeX documents or imported into citation managers like Zotero or Mendeley.
+
+### Cleaning Stale Citation Backlinks
+
+Over time, you may delete or edit citations in your notes, leaving orphaned backlinks in the corresponding reference notes. To clean these up:
+
+1. Open the reference note you want to clean (e.g., `refs/Wright2013.md`)
+2. Use the command palette (Ctrl/Cmd+P) and run **"Clean stale citation backlinks"**
+3. The plugin will:
+   - Check every backlink in the `## Citations` section
+   - Remove any entry whose source block no longer exists in the linked note
+   - Show a notice with how many stale entries were removed
+
+> **Note:** This command is only available when the active note is a reference note (located in your configured refs folder or containing a `citekey` frontmatter field).
 
 
 ## File Structure & Organization
