@@ -64,7 +64,7 @@ export default class LogosReferencePlugin extends Plugin {
 				editor.replaceSelection(`${quotedText}\n`);
 		
 				// Create or update reference file
-				const linkBack = `![[${file.path.replace(/\.md$/, '')}#^${blockId}]]`;
+				const linkBack = `[[${file.path.replace(/\.md$/, '')}#^${blockId}]]`;
 				
 				try {
 					await createOrUpdateReferenceNote(this.app, filePath, folder, bibtex, linkBack);

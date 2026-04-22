@@ -33,7 +33,7 @@ export async function createOrUpdateReferenceNote(
 			'---',
 			'',
 			'## Citations',
-			`- ${linkBack}`
+			`${linkBack} !${linkBack}\n`
 		].join('\n');
 		await app.vault.create(filePath, content);
 	} else {
@@ -43,7 +43,7 @@ export async function createOrUpdateReferenceNote(
 		} else {
 			throw new Error(`Could not read ${filePath}: not a valid file`);
 		}
-		const citationLine = `- ${linkBack}`;
+		const citationLine = `${linkBack} !${linkBack}\n`;
 		let updatedContent: string;
 
 		if (refNote.includes("## Citations")) {
