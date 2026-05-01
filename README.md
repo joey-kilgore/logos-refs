@@ -7,6 +7,9 @@
 
 An [Obsidian](https://obsidian.md) plugin that simplifies referencing and linking material from [Logos Bible Software](https://www.logos.com/). Easily create formatted citations with metadata-based references and automatically generate bibliographies for your notes. Reference metadata is stored in YAML frontmatter format, making it compatible with Obsidian properties, Dataview queries, and the Bases plugin.
 
+> [!IMPORTANT]
+> **Before using this plugin, you must configure Logos Bible Software to use BibTeX citation style.** Without this setting, copied references will not be recognized by the plugin. See [Initial Setup](#initial-setup) for instructions.
+
 ## Table of Contents
 
 - [Features](#features)
