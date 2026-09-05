@@ -3,7 +3,7 @@
  * Main plugin entry point and command orchestration
  */
 
-import { Editor, MarkdownEditView, Notice, Plugin, TFile } from 'obsidian';
+import { Editor, MarkdownEditView, MarkdownView, Notice, Plugin, TFile } from 'obsidian';
 import { LogosPluginSettingTab } from './settings';
 import type { LogosPluginSettings } from './types';
 import { DEFAULT_SETTINGS } from './types';
@@ -22,9 +22,84 @@ import {
 
 export default class LogosReferencePlugin extends Plugin {
 	settings: LogosPluginSettings;
+
+	private isValidLogosClipboardText(clipboard: string): boolean {
+		try {
+			const { mainText, bibtex } = parseLogosClipboard(clipboard);
+			if (!mainText?.trim() || !bibtex?.trim()) {
+				return false;
+			}
+
+			extractCiteKey(bibtex);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private async pasteLogosReferenceFromClipboardText(editor: Editor, file: TFile, clipboard: string): Promise<void> {
+		const noteKey = file.path;
+		const { mainText, bibtex, page } = parseLogosClipboard(clipboard);
+		const citeKey = extractCiteKey(bibtex);
+		const folder = this.settings.bibFolder.trim() || '';
+		const filePath = folder ? `${folder}/${citeKey}.md` : `${citeKey}.md`;
+
+		// Format inline citation according to selected format
+		const inlineCitation = formatInlineCitation(bibtex, page, this.settings.bibliographyFormat);
+
+		// Generate block ID using a persistent counter
+		const counters = this.settings.citationCounters;
+		if (!counters[noteKey]) {
+			counters[noteKey] = 1;
+		} else {
+			counters[noteKey]++;
+		}
+		const blockId = `${citeKey.replace(/\s/g, '-')}-${counters[noteKey]}`;
+		await this.saveSettings();
+
+		const quotedText = [
+			`> [!${this.settings.citationCalloutType}]`,
+			`> ${mainText.split('\n').join('\n> ')}`,
+			`> [[${filePath}|${inlineCitation}]] ^${blockId}`
+		].join('\n');
+
+		editor.replaceSelection(`${quotedText}\n`);
+
+		// Create or update reference file
+		const linkBack = `[[${file.path.replace(/\.md$/, '')}#^${blockId}]]`;
+
+		try {
+			await createOrUpdateReferenceNote(this.app, filePath, folder, bibtex, linkBack);
+			new Notice(`Reference note updated: ${filePath}`);
+		} catch (error) {
+			new Notice(`Error creating reference note: ${error.message}`);
+		}
+	}
   
 	async onload() {
 		await this.loadSettings();
+
+		this.registerDomEvent(document, 'paste', (event: ClipboardEvent) => {
+			if (!this.settings.enablePasteEventTrigger) {
+				return;
+			}
+
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			const editor = activeView?.editor;
+			const file = activeView?.file;
+			const clipboardText = event.clipboardData?.getData('text/plain');
+
+			if (!editor || !file || !clipboardText || !this.isValidLogosClipboardText(clipboardText)) {
+				return;
+			}
+
+			event.preventDefault();
+			event.stopPropagation();
+
+			this.pasteLogosReferenceFromClipboardText(editor, file, clipboardText).catch((error) => {
+				new Notice(`Error pasting Logos reference: ${error.message}`);
+			});
+		});
 
 		this.addCommand({
 			id: 'clean-reference-citations',
@@ -71,43 +146,13 @@ export default class LogosReferencePlugin extends Plugin {
 					return;
 				}
 				
-				const noteKey = file.path
 				const clipboard = await navigator.clipboard.readText();
-				const { mainText, bibtex, page } = parseLogosClipboard(clipboard);
-				const citeKey = extractCiteKey(bibtex);
-				const folder = this.settings.bibFolder.trim() || '';
-				const filePath = folder ? `${folder}/${citeKey}.md` : `${citeKey}.md`;
+				if (!this.isValidLogosClipboardText(clipboard)) {
+					new Notice('Clipboard does not contain a Logos reference with BibTeX.');
+					return;
+				}
 
-				// Format inline citation according to selected format
-				const inlineCitation = formatInlineCitation(bibtex, page, this.settings.bibliographyFormat);
-		
-				// Generate block ID using a persistent counter
-				const counters = this.settings.citationCounters;
-				if (!counters[noteKey]) {
-					counters[noteKey] = 1;
-				} else {
-					counters[noteKey]++;
-				}
-				const blockId = `${citeKey.replace(/\s/g, '-')}-${counters[noteKey]}`;
-				await this.saveSettings();
-		
-				const quotedText = [
-					`> [!${this.settings.citationCalloutType}]`,
-					`> ${mainText.split('\n').join('\n> ')}`,
-					`> [[${filePath}|${inlineCitation}]] ^${blockId}`
-				].join('\n');
-		
-				editor.replaceSelection(`${quotedText}\n`);
-		
-				// Create or update reference file
-				const linkBack = `[[${file.path.replace(/\.md$/, '')}#^${blockId}]]`;
-				
-				try {
-					await createOrUpdateReferenceNote(this.app, filePath, folder, bibtex, linkBack);
-					new Notice(`Reference note updated: ${filePath}`);
-				} catch (error) {
-					new Notice(`Error creating reference note: ${error.message}`);
-				}
+				await this.pasteLogosReferenceFromClipboardText(editor, file, clipboard);
 			}
 		});
 

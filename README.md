@@ -107,6 +107,11 @@ Choose how bibliographies are formatted when using the "List all BibTeX referenc
 
 Customize the callout type used for citations. You can change it to any Obsidian callout type you prefer (e.g., "Quote", "Citation", "Note"). This allows you to match your personal note-taking style or use different callout styles for different types of content.
 
+### Use logos-refs on normal paste (mobile)
+**Default:** Disabled
+
+On mobile, you can enable this setting to trigger logos-refs from the standard paste action. When enabled, pasting Logos content that includes BibTeX will run the same behavior as the **"Paste Logos reference with BibTeX"** command.
+
 ## Usage
 
 ### Pasting Logos References
@@ -116,6 +121,7 @@ https://github.com/user-attachments/assets/444c5892-8e17-43c4-8c8b-27a319315eec
 1. In Logos Bible Software, select and copy the text you want to reference (Ctrl/Cmd+C)
 2. In your Obsidian note, use the command palette (Ctrl/Cmd+P) and run **"Paste Logos reference with BibTeX"**
    - Or set up a hotkey for faster access
+   - On mobile, you can enable **Use logos-refs on normal paste (mobile)** in plugin settings and use the regular paste action
 3. The plugin will:
    - Insert a formatted quote block with your copied text
    - Create a link to a reference note (or update an existing one)
