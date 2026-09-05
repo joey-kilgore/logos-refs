@@ -5,6 +5,7 @@ export interface LogosPluginSettings {
 	citationCounters: Record<string, number>;
 	bibliographyFormat: BibliographyFormat;
 	citationCalloutType: string;
+	enablePasteEventTrigger: boolean;
 }
 
 export const DEFAULT_SETTINGS: LogosPluginSettings = {
@@ -12,4 +13,5 @@ export const DEFAULT_SETTINGS: LogosPluginSettings = {
 	citationCounters: {},
 	bibliographyFormat: 'latex',
 	citationCalloutType: 'Logos Ref',
+	enablePasteEventTrigger: false,
 };

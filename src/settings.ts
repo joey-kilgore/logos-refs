@@ -2,7 +2,7 @@
  * Settings interface and settings tab for the Logos References plugin
  */
 
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Platform, PluginSettingTab, Setting } from 'obsidian';
 import type LogosReferencePlugin from './main';
 import { FolderSuggest } from './ui/folder-suggest';
 import type { BibliographyFormat } from './types';
@@ -67,5 +67,19 @@ export class LogosPluginSettingTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					});
 			});
+
+		if (Platform.isMobile) {
+			new Setting(this.containerEl)
+				.setName('Use logos-refs on normal paste (mobile)')
+				.setDesc('When enabled, pasting Logos content with BibTeX will trigger the logos-refs paste command automatically.')
+				.addToggle((toggle) => {
+					toggle
+						.setValue(this.plugin.settings.enablePasteEventTrigger)
+						.onChange(async (value) => {
+							this.plugin.settings.enablePasteEventTrigger = value;
+							await this.plugin.saveSettings();
+						});
+				});
+		}
 	}
 }
